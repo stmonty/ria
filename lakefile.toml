@@ -1,0 +1,10 @@
+name = "ria"
+version = "0.1.0"
+defaultTargets = ["ria"]
+
+[[lean_lib]]
+name = "Ria"
+
+[[lean_exe]]
+name = "ria"
+root = "Main"
