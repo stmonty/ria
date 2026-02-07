@@ -5,7 +5,6 @@ def openBlasLinkArgs : Array String := Id.run do
   if Platform.isOSX then
     #[
       "-L/opt/homebrew/opt/openblas/lib",
-      "-L/usr/local/opt/openblas/lib",
       "-lopenblas"
     ]
   else if Platform.isWindows then
@@ -21,6 +20,16 @@ def openBlasLinkArgs : Array String := Id.run do
       "-lopenblas"
     ]
 
+def openBlasIncArgs : Array String := Id.run do
+  if Platform.isOSX then
+    #[
+      "-I/opt/homebrew/opt/openblas/include"
+    ]
+  else
+    #[
+      "-I/usr/lib/x86_64-linux-gnu"
+    ]
+
 package ria where
   moreLinkArgs := openBlasLinkArgs
 
@@ -32,7 +41,7 @@ extern_lib riac pkg := do
     for cFile in cFiles do
       let stem := cFile.fileStem.getD (cFile.fileName.getD "csrc")
       let oFile := pkg.buildDir / "c" / s!"{stem}.o"
-      let cArgs := #["-I", (← getLeanIncludeDir).toString]
+      let cArgs := Array.append #["-I", (← getLeanIncludeDir).toString] openBlasIncArgs
       compileO oFile cFile cArgs "cc"
       oFiles := oFiles.push oFile
     let libPath := pkg.staticLibDir / nameToStaticLib "riac"
