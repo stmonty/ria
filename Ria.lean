@@ -2,3 +2,5 @@
 -- Import modules here that should be built as part of the library.
 import Ria.FFI.Memory
 import Ria.FFI.Blas1
+import Ria.Layout
+import Ria.Vector
