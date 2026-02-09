@@ -16,9 +16,11 @@ def zeros (n : Nat) (h : n < USize.size) : Vector n := by
   have hs : data.size = n := by
     calc
       data.size = u.toNat := by
-        simpa [data] using Ria.FFI.allocZeros_size u
+        dsimp [data]
+        exact Ria.FFI.allocZeros_size u
       _ = n := by
-        simpa [u] using (USize.toNat_ofNatLT (n := n) (h := h))
+        dsimp [u]
+        exact USize.toNat_ofNatLT (n := n) (h := h)
   exact ⟨data, hs⟩
 
 def fill (n : Nat) (val : Float) (h : n < USize.size) : Vector n := by
@@ -27,20 +29,26 @@ def fill (n : Nat) (val : Float) (h : n < USize.size) : Vector n := by
   have hs : data.size = n := by
     calc
       data.size = u.toNat := by
-        simpa [data] using Ria.FFI.allocFill_size u val
+        dsimp [data]
+        exact Ria.FFI.allocFill_size u val
       _ = n := by
-        simpa [u] using (USize.toNat_ofNatLT (n := n) (h := h))
+        dsimp [u]
+        exact USize.toNat_ofNatLT (n := n) (h := h)
   exact ⟨data, hs⟩
 
 def ones (n : Nat) (h : n < USize.size) : Vector n :=
   fill n 1.0 h
 
 def get (v : Vector n) (i : Fin n) : Float :=
-  let hi : i.val < v.data.size := by simpa [v.h_size] using i.isLt
+  let hi : i.val < v.data.size := by
+    rw [v.h_size]
+    exact i.isLt
   v.data.get i.val hi
 
 def set (v : Vector n) (i : Fin n) (val : Float) : Vector n := by
-  let hi : i.val < v.data.size := by simpa [v.h_size] using i.isLt
+  let hi : i.val < v.data.size := by
+    rw [v.h_size]
+    exact i.isLt
   let data := v.data.set i.val val hi
   have hs : data.size = n := by
     calc
@@ -57,7 +65,8 @@ def scale (alpha : Float) (v : Vector n) : Vector n := by
   have hs : result.size = n := by
     calc
       result.size = v.data.size := by
-        simpa [result] using Ria.FFI.dscal_size v.data.usize alpha v.data 1
+        dsimp [result]
+        exact Ria.FFI.dscal_size v.data.usize alpha v.data 1
       _ = n := v.h_size
   exact ⟨result, hs⟩
 
@@ -66,7 +75,8 @@ def add (x : Vector n) (y : Vector n) : Vector n := by
   have hs : result.size = n := by
     calc
       result.size = y.data.size := by
-        simpa [result] using Ria.FFI.daxpy_size x.data.usize 1.0 x.data 1 y.data 1
+        dsimp [result]
+        exact Ria.FFI.daxpy_size x.data.usize 1.0 x.data 1 y.data 1
       _ = n := y.h_size
   exact ⟨result, hs⟩
 
@@ -75,7 +85,8 @@ def sub (x : Vector n) (y : Vector n) : Vector n := by
   have hs : result.size = n := by
     calc
       result.size = x.data.size := by
-        simpa [result] using Ria.FFI.daxpy_size x.data.usize (-1.0) y.data 1 x.data 1
+        dsimp [result]
+        exact Ria.FFI.daxpy_size x.data.usize (-1.0) y.data 1 x.data 1
       _ = n := x.h_size
   exact ⟨result, hs⟩
 
