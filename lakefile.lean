@@ -54,3 +54,7 @@ lean_lib Ria where
 
 lean_exe ria where
   root := `Main
+
+@[test_driver]
+lean_exe RiaTest where
+  root := `RiaTest

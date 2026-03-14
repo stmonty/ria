@@ -5,3 +5,7 @@ import Ria.FFI.Blas1
 import Ria.FFI.Blas3
 import Ria.Layout
 import Ria.Array
+import Ria.Combinators
+import Ria.IR.Expr
+import Ria.IR.Eval
+import Ria.IR.Fusion
