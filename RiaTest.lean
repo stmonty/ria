@@ -247,6 +247,79 @@ def testFusionBlasDot : IO Unit := do
   assert! approxEq fused 18.0
 
 -- ============================================================
+-- Normalize (fusion through let-bindings) tests
+-- ============================================================
+
+def testNormalizeMapMapLet : IO Unit := do
+  let v := Array.fill [3] 2.0 (small_lt_usize 3 (by omega))
+  let expr : ClosedExpr (.array [3]) := fun V =>
+    .lett (.map (· * 2.0) (.literal v)) (fun a =>
+      .map (· + 1.0) (.var a))
+  let unfused := run expr
+  let normalized := run (normalize expr)
+  assert! allClose unfused normalized
+  -- 2*2+1 = 5
+  assert! approxEq (normalized.get ⟨0, by omega⟩) 5.0
+
+def testNormalizeTripleMapLets : IO Unit := do
+  let v := Array.fill [3] 2.0 (small_lt_usize 3 (by omega))
+  let expr : ClosedExpr (.array [3]) := fun V =>
+    .lett (.map (· - 1.0) (.literal v)) (fun a =>
+      .lett (.map (· * 3.0) (.var a)) (fun b =>
+        .map (· + 10.0) (.var b)))
+  let unfused := run expr
+  let normalized := run (normalize expr)
+  assert! allClose unfused normalized
+  -- (2-1)*3+10 = 13
+  assert! approxEq (normalized.get ⟨0, by omega⟩) 13.0
+
+def testNormalizeReduceMapLet : IO Unit := do
+  let v := Array.fill [3] 2.0 (small_lt_usize 3 (by omega))
+  let expr : ClosedExpr .float := fun V =>
+    .lett (.map (fun x => x * x) (.literal v)) (fun a =>
+      .reduce (· + ·) 0.0 (.var a))
+  let unfused := run expr
+  let normalized := run (normalize expr)
+  assert! approxEq unfused normalized
+  assert! approxEq normalized 12.0
+
+def testNormalizePassCount : IO Unit := do
+  let v := Array.fill [3] 2.0 (small_lt_usize 3 (by omega))
+  -- 3 passes before normalize
+  let expr : ClosedExpr (.array [3]) := fun V =>
+    .lett (.map (· - 1.0) (.literal v)) (fun a =>
+      .lett (.map (· * 3.0) (.var a)) (fun b =>
+        .map (· + 10.0) (.var b)))
+  assert! passes expr == 3
+  -- 1 pass after normalize
+  let norm := normalize expr
+  assert! passes norm == 1
+
+-- ============================================================
+-- Pretty-printing tests
+-- ============================================================
+
+def testPrettyLiteral : IO Unit := do
+  let v := Array.fill [3] 1.0 (small_lt_usize 3 (by omega))
+  let expr : ClosedExpr (.array [3]) := fun _ => .literal v
+  assert! pretty expr == "arr"
+
+def testPrettyMap : IO Unit := do
+  let v := Array.fill [3] 1.0 (small_lt_usize 3 (by omega))
+  let expr : ClosedExpr (.array [3]) := fun _ =>
+    .map (· + 1.0) (.literal v)
+  assert! pretty expr == "map(f, arr)"
+
+def testPrettyLet : IO Unit := do
+  let v := Array.fill [3] 1.0 (small_lt_usize 3 (by omega))
+  let expr : ClosedExpr (.array [3]) := fun V =>
+    .lett (.literal v) (fun a => .map (· + 1.0) (.var a))
+  let s := pretty expr
+  -- Should contain "let x0" and "map"
+  assert! s.splitOn "let x0" != [s]
+  assert! s.splitOn "map" != [s]
+
+-- ============================================================
 -- Main: run all tests
 -- ============================================================
 
@@ -286,7 +359,16 @@ def main : IO UInt32 := do
     ("fusion: zipWith-map left", testFusionZipWithMapLeft),
     ("fusion: zipWith-map right", testFusionZipWithMapRight),
     ("fusion: identity", testFusionIdentity),
-    ("fusion: BLAS dot", testFusionBlasDot)
+    ("fusion: BLAS dot", testFusionBlasDot),
+    -- Normalize (fusion through lets)
+    ("normalize: map-map let", testNormalizeMapMapLet),
+    ("normalize: triple map lets", testNormalizeTripleMapLets),
+    ("normalize: reduce-map let", testNormalizeReduceMapLet),
+    ("normalize: pass count", testNormalizePassCount),
+    -- Pretty-printing
+    ("pretty: literal", testPrettyLiteral),
+    ("pretty: map", testPrettyMap),
+    ("pretty: let", testPrettyLet)
   ]
 
   IO.println s!"Running {tests.length} tests...\n"

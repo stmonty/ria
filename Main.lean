@@ -27,42 +27,59 @@ def main : IO Unit := do
   let zipped := Ria.Array.zipWith (· * ·) v1 v2
   IO.println s!"zipWith (*) v1 v2 = {zipped}"
 
-  IO.println "\n=== IR: Expression Tree + Fusion ==="
+  IO.println "\n=== IR: Pretty-Printing + Direct Fusion ==="
 
-  -- Build an expression: take v1, double each element, then add 1
-  -- Without fusion this is TWO passes over the array
-  let expr : ClosedExpr (.array [3]) := fun V =>
+  let expr : ClosedExpr (.array [3]) := fun _ =>
     .map (· + 1.0) (.map (· * 2.0) (.literal v1))
 
-  -- Evaluate WITHOUT fusion (two passes)
-  let unfused := eval (expr Ty.denote)
-  IO.println s!"unfused: map (+1) (map (*2) v1) = {unfused}"
+  IO.println s!"before: {pretty expr}  ({passes expr} passes)"
+  let exprFused := normalize expr
+  IO.println s!"after:  {pretty exprFused}  ({passes exprFused} pass)"
+  IO.println s!"result: {run exprFused}"
 
-  -- Fuse: map (+1) ∘ map (*2) → map (fun x => x*2 + 1)
-  -- Now it's ONE pass
-  let fused := eval (fuse (expr Ty.denote))
-  IO.println s!"fused:   map (x => x*2+1) v1  = {fused}"
+  IO.println "\n=== IR: Fusion Through Let-Bindings ==="
 
-  IO.println "\n=== IR: Reduce-Map Fusion ==="
+  -- Previously, the let hid the nesting and fusion couldn't fire
+  let exprLet : ClosedExpr (.array [3]) := fun V =>
+    .lett (.map (· * 2.0) (.literal v1)) (fun a =>
+      .map (· + 1.0) (.var a))
 
-  -- sum(map square x) → reduce (fun a b => a + b*b) 0 x
-  let expr2 : ClosedExpr .float := fun V =>
-    .reduce (· + ·) 0.0 (.map (fun x => x * x) (.literal v1))
+  IO.println s!"before: {pretty exprLet}  ({passes exprLet} passes)"
+  let normLet := normalize exprLet
+  IO.println s!"after:  {pretty normLet}  ({passes normLet} pass)"
 
-  let unfused2 := eval (expr2 Ty.denote)
-  IO.println s!"unfused: reduce (+) 0 (map (x=>x*x) v1) = {unfused2}"
+  let resultLet := run exprLet
+  let resultNorm := run normLet
+  IO.println s!"unfused = {resultLet}"
+  IO.println s!"fused   = {resultNorm}"
 
-  let fused2 := eval (fuse (expr2 Ty.denote))
-  IO.println s!"fused:   reduce (a b => a+b*b) 0 v1    = {fused2}"
+  IO.println "\n=== IR: Triple Map Through Lets ==="
 
-  IO.println "\n=== IR: Triple Map Fusion ==="
+  let exprTriple : ClosedExpr (.array [3]) := fun V =>
+    .lett (.map (· - 1.0) (.literal v1)) (fun a =>
+      .lett (.map (· * 3.0) (.var a)) (fun b =>
+        .map (· + 10.0) (.var b)))
 
-  -- map h (map g (map f x)) → map (h ∘ g ∘ f) x — three passes to one
-  let expr3 : ClosedExpr (.array [3]) := fun V =>
-    .map (· + 10.0) (.map (· * 3.0) (.map (· - 1.0) (.literal v1)))
+  IO.println s!"before: {pretty exprTriple}  ({passes exprTriple} passes)"
+  let normTriple := normalize exprTriple
+  IO.println s!"after:  {pretty normTriple}  ({passes normTriple} pass)"
 
-  let unfused3 := eval (expr3 Ty.denote)
-  IO.println s!"unfused: map (+10) (map (*3) (map (-1) v1)) = {unfused3}"
+  let resultTriple := run exprTriple
+  let resultNormTriple := run normTriple
+  IO.println s!"unfused = {resultTriple}"
+  IO.println s!"fused   = {resultNormTriple}"
 
-  let fused3 := eval (fuse (expr3 Ty.denote))
-  IO.println s!"fused:   map (x => (x-1)*3+10) v1         = {fused3}"
+  IO.println "\n=== IR: Reduce-Map Through Let ==="
+
+  let exprRedLet : ClosedExpr .float := fun V =>
+    .lett (.map (fun x => x * x) (.literal v1)) (fun a =>
+      .reduce (· + ·) 0.0 (.var a))
+
+  IO.println s!"before: {pretty exprRedLet}  ({passes exprRedLet} passes)"
+  let normRed := normalize exprRedLet
+  IO.println s!"after:  {pretty normRed}  ({passes normRed} pass)"
+
+  let resultRedLet := run exprRedLet
+  let resultNormRed := run normRed
+  IO.println s!"unfused = {resultRedLet}"
+  IO.println s!"fused   = {resultNormRed}"

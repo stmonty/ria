@@ -9,3 +9,5 @@ import Ria.Combinators
 import Ria.IR.Expr
 import Ria.IR.Eval
 import Ria.IR.Fusion
+import Ria.IR.Pretty
+import Ria.IR.Normalize
