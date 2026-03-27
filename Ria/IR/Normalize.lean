@@ -3,21 +3,13 @@ import Ria.IR.Fusion
 
 namespace Ria.IR
 
-/-- String variables for the output expression. -/
 abbrev NormV (_ : Ty) := String
 
 private instance : Inhabited (Expr V a) := by
   cases a with
   | float => exact ⟨.litF 0.0⟩
-  | array shape => exact ⟨.literal ⟨FloatArray.emptyWithCapacity 0, by sorry⟩⟩
+  | array shape => exact ⟨.literal ⟨ByteArray.emptyWithCapacity 0, by sorry⟩⟩
 
-/-- Inline all let-bindings in an expression.
-
-    The PHOAS trick: instantiate V as `fun a => Expr NormV a`.
-    Now each variable holds the expression it was bound to.
-    When we hit `.var x`, x is already an `Expr NormV a`, just return it.
-    When we hit `.lett e body`, inline e, then pass the result directly
-    to body as the variable's value. The let disappears. -/
 partial def inline : Expr (fun a => Expr NormV a) a → Expr NormV a
   | .var x         => x
   | .lett e body   => inline (body (inline e))
@@ -33,9 +25,6 @@ partial def inline : Expr (fun a => Expr NormV a) a → Expr NormV a
   | .dot e1 e2     => .dot (inline e1) (inline e2)
   | .matmul e1 e2  => .matmul (inline e1) (inline e2)
 
-/-- Convert a variable-free expression to any V.
-    After inlining, there are no vars or lets, so this just
-    rebuilds the tree with a different type parameter. -/
 partial def toAnyV : Expr NormV a → Expr V a
   | .litF x        => .litF x
   | .literal a     => .literal a
@@ -51,8 +40,6 @@ partial def toAnyV : Expr NormV a → Expr V a
   | .var _         => panic! "unexpected variable after normalization"
   | .lett _ _      => panic! "unexpected let after normalization"
 
-/-- Normalize a closed expression: inline all lets, then fuse.
-    Returns a new ClosedExpr that can be pretty-printed or evaluated. -/
 def normalize (e : ClosedExpr a) : ClosedExpr a :=
   fun _ => toAnyV (fuse (inline (e (fun a => Expr NormV a))))
 
