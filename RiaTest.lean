@@ -122,6 +122,58 @@ def testDot : IO Unit := do
   assert! Ria.Array.dot v1 v2 == 18.0
 
 -- ============================================================
+-- fromList tests
+-- ============================================================
+
+def testFromList1d : IO Unit := do
+  let v := Array.fromList [3] [1.0, 2.0, 3.0] .float64 (by native_decide)
+  assert! v.get ⟨0, by omega⟩ == 1.0
+  assert! v.get ⟨1, by omega⟩ == 2.0
+  assert! v.get ⟨2, by omega⟩ == 3.0
+
+def testFromList2d : IO Unit := do
+  let m := Array.fromList [2, 3] [1.0, 2.0, 3.0, 4.0, 5.0, 6.0] .float64 (by native_decide)
+  assert! m.get2d ⟨0, by omega⟩ ⟨0, by omega⟩ == 1.0
+  assert! m.get2d ⟨0, by omega⟩ ⟨2, by omega⟩ == 3.0
+  assert! m.get2d ⟨1, by omega⟩ ⟨0, by omega⟩ == 4.0
+  assert! m.get2d ⟨1, by omega⟩ ⟨2, by omega⟩ == 6.0
+
+-- ============================================================
+-- BLAS3 tests (matmul, matvec)
+-- ============================================================
+
+def testMatmul : IO Unit := do
+  -- A = [[1, 2, 3], [4, 5, 6]]  (2×3)
+  -- B = [[7, 8], [9, 10], [11, 12]]  (3×2)
+  -- A*B = [[58, 64], [139, 154]]  (2×2)
+  let a := Array.fromList [2, 3] [1, 2, 3, 4, 5, 6] .float64 (by native_decide)
+  let b := Array.fromList [3, 2] [7, 8, 9, 10, 11, 12] .float64 (by native_decide)
+  let c := Array.matmul a b (small_lt_usize 32 (by omega))
+  assert! c.get2d ⟨0, by omega⟩ ⟨0, by omega⟩ == 58.0
+  assert! c.get2d ⟨0, by omega⟩ ⟨1, by omega⟩ == 64.0
+  assert! c.get2d ⟨1, by omega⟩ ⟨0, by omega⟩ == 139.0
+  assert! c.get2d ⟨1, by omega⟩ ⟨1, by omega⟩ == 154.0
+
+def testMatvec : IO Unit := do
+  -- A = [[1, 2, 3], [4, 5, 6]]  (2×3)
+  -- x = [1, 2, 3]
+  -- A*x = [14, 32]
+  let a := Array.fromList [2, 3] [1, 2, 3, 4, 5, 6] .float64 (by native_decide)
+  let x := Array.fromList [3] [1, 2, 3] .float64 (by native_decide)
+  let y := Array.matvec a x (small_lt_usize 16 (by omega))
+  assert! y.get ⟨0, by omega⟩ == 14.0
+  assert! y.get ⟨1, by omega⟩ == 32.0
+
+def testMatmulF32 : IO Unit := do
+  let a := Array.fromList [2, 2] [1, 2, 3, 4] .float32 (by native_decide)
+  let b := Array.fromList [2, 2] [5, 6, 7, 8] .float32 (by native_decide)
+  let c := Array.matmul a b (small_lt_usize 16 (by omega))
+  assert! approxEq (c.get2d ⟨0, by omega⟩ ⟨0, by omega⟩) 19.0 1e-4
+  assert! approxEq (c.get2d ⟨0, by omega⟩ ⟨1, by omega⟩) 22.0 1e-4
+  assert! approxEq (c.get2d ⟨1, by omega⟩ ⟨0, by omega⟩) 43.0 1e-4
+  assert! approxEq (c.get2d ⟨1, by omega⟩ ⟨1, by omega⟩) 50.0 1e-4
+
+-- ============================================================
 -- Combinator tests
 -- ============================================================
 
@@ -261,6 +313,13 @@ def main : IO UInt32 := do
     -- Element access
     ("get/set 1D", testGetSet),
     ("get/set 2D", testGet2dSet2d),
+    -- fromList
+    ("fromList 1D", testFromList1d),
+    ("fromList 2D", testFromList2d),
+    -- BLAS3
+    ("matmul", testMatmul),
+    ("matvec", testMatvec),
+    ("matmul f32", testMatmulF32),
     -- BLAS ops
     ("add", testAdd),
     ("sub", testSub),

@@ -60,6 +60,17 @@ def ones (shape : List Nat) (dtype : DType := .float64)
     (h : shapeProd shape < USize.size) : Array shape dtype :=
   fill shape 1.0 dtype h
 
+def fromList (shape : List Nat) (vals : List Float) (dtype : DType := .float64)
+    (h_len : vals.length = shapeProd shape) : Array shape dtype :=
+  let n := shapeProd shape
+  let init := Ria.FFI.allocBytesZeros (n * dtype.bytesNat).toUSize
+  let data := vals.foldl (init := (init, 0)) fun (acc, i) v =>
+    let acc' := match dtype with
+      | .float64 => Ria.FFI.writeF64 acc i.toUSize v
+      | .float32 => Ria.FFI.writeF32 acc i.toUSize v
+    (acc', i + 1)
+  ⟨data.1, by sorry⟩
+
 def get (a : Array [n] dtype) (i : Fin n) : Float :=
   a.readElem i.val.toUSize
 
