@@ -223,6 +223,45 @@ def testEvalScalarOps : IO Unit := do
     .addf (.litF 3.0) (.mulf (.litF 2.0) (.litF 4.0))
   assert! eval (expr Ty.denote) == 11.0
 
+def testEvalNegf : IO Unit := do
+  let expr : ClosedExpr .float := fun _ => .negf (.litF 3.0)
+  assert! eval (expr Ty.denote) == -3.0
+
+def testEvalDivf : IO Unit := do
+  let expr : ClosedExpr .float := fun _ => .divf (.litF 10.0) (.litF 4.0)
+  assert! eval (expr Ty.denote) == 2.5
+
+def testEvalEmul : IO Unit := do
+  let v := Array.fromList [3] [1, 2, 3] .float64 (by native_decide)
+  let w := Array.fromList [3] [4, 5, 6] .float64 (by native_decide)
+  let expr : ClosedExpr (.array [3]) := fun _ =>
+    .emul (.literal v) (.literal w)
+  let r := eval (expr Ty.denote)
+  assert! r.get ⟨0, by omega⟩ == 4.0
+  assert! r.get ⟨1, by omega⟩ == 10.0
+  assert! r.get ⟨2, by omega⟩ == 18.0
+
+def testEvalBcast : IO Unit := do
+  let expr : ClosedExpr (.array [4]) := fun _ => .bcast (.litF 7.0)
+  let r := eval (expr Ty.denote)
+  assert! r.get ⟨0, by omega⟩ == 7.0
+  assert! r.get ⟨1, by omega⟩ == 7.0
+  assert! r.get ⟨2, by omega⟩ == 7.0
+  assert! r.get ⟨3, by omega⟩ == 7.0
+
+def testEvalTpose : IO Unit := do
+  -- A = [[1, 2, 3], [4, 5, 6]]  (2×3)
+  -- Aᵀ = [[1, 4], [2, 5], [3, 6]]  (3×2)
+  let a := Array.fromList [2, 3] [1, 2, 3, 4, 5, 6] .float64 (by native_decide)
+  let expr : ClosedExpr (.array [3, 2]) := fun _ => .tpose (.literal a)
+  let r := eval (expr Ty.denote)
+  assert! r.get2d ⟨0, by omega⟩ ⟨0, by omega⟩ == 1.0
+  assert! r.get2d ⟨0, by omega⟩ ⟨1, by omega⟩ == 4.0
+  assert! r.get2d ⟨1, by omega⟩ ⟨0, by omega⟩ == 2.0
+  assert! r.get2d ⟨1, by omega⟩ ⟨1, by omega⟩ == 5.0
+  assert! r.get2d ⟨2, by omega⟩ ⟨0, by omega⟩ == 3.0
+  assert! r.get2d ⟨2, by omega⟩ ⟨1, by omega⟩ == 6.0
+
 -- ============================================================
 -- Fusion correctness tests
 -- ============================================================
@@ -335,6 +374,11 @@ def main : IO UInt32 := do
     ("eval literal", testEvalLiteral),
     ("eval map", testEvalMap),
     ("eval scalar ops", testEvalScalarOps),
+    ("eval negf", testEvalNegf),
+    ("eval divf", testEvalDivf),
+    ("eval emul", testEvalEmul),
+    ("eval bcast", testEvalBcast),
+    ("eval tpose", testEvalTpose),
     -- Fusion
     ("fusion: map-map", testFusionMapMap),
     ("fusion: reduce-map", testFusionReduceMap),

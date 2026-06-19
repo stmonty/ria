@@ -23,5 +23,10 @@ partial def fuse : Expr V a → Expr V a
   | .scale e1 e2   => .scale (fuse e1) (fuse e2)
   | .dot e1 e2     => .dot (fuse e1) (fuse e2)
   | .matmul e1 e2  => .matmul (fuse e1) (fuse e2)
+  | .negf e        => .negf (fuse e)
+  | .divf e1 e2    => .divf (fuse e1) (fuse e2)
+  | .emul e1 e2    => .emul (fuse e1) (fuse e2)
+  | .bcast e       => .bcast (fuse e)
+  | .tpose e       => .tpose (fuse e)
 
 end Ria.IR

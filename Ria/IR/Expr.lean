@@ -33,6 +33,11 @@ inductive Expr (V : Ty → Type) : Ty → Type where
   | dot     : Expr V (.array [n]) → Expr V (.array [n]) → Expr V .float
   | matmul  : Expr V (.array [m, k]) → Expr V (.array [k, n])
               → Expr V (.array [m, n])
+  | negf    : Expr V .float → Expr V .float
+  | divf    : Expr V .float → Expr V .float → Expr V .float
+  | emul    : Expr V (.array s) → Expr V (.array s) → Expr V (.array s)
+  | bcast   : Expr V .float → Expr V (.array s)
+  | tpose   : Expr V (.array [m, n]) → Expr V (.array [n, m])
 
 def ClosedExpr (a : Ty) := ∀ V, Expr V a
 

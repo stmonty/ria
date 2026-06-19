@@ -32,6 +32,11 @@ partial def prettyExpr : Expr NameV a → PrettyM String
   | .scale e1 e2 => do return s!"scale({← prettyExpr e1}, {← prettyExpr e2})"
   | .dot e1 e2 => do return s!"dot({← prettyExpr e1}, {← prettyExpr e2})"
   | .matmul e1 e2 => do return s!"matmul({← prettyExpr e1}, {← prettyExpr e2})"
+  | .negf e => do return s!"neg({← prettyExpr e})"
+  | .divf e1 e2 => do return s!"({← prettyExpr e1} / {← prettyExpr e2})"
+  | .emul e1 e2 => do return s!"emul({← prettyExpr e1}, {← prettyExpr e2})"
+  | .bcast e => do return s!"bcast({← prettyExpr e})"
+  | .tpose e => do return s!"tpose({← prettyExpr e})"
 
 def pretty (e : ClosedExpr a) : String :=
   let (s, _) := (prettyExpr (e NameV)).run {}
@@ -40,11 +45,15 @@ def pretty (e : ClosedExpr a) : String :=
 partial def countPasses : Expr NameV a → Nat
   | .var _ | .litF _ | .literal _ => 0
   | .lett e body => countPasses e + countPasses (body "_")
-  | .addf e1 e2 | .mulf e1 e2 | .subf e1 e2 => countPasses e1 + countPasses e2
+  | .addf e1 e2 | .mulf e1 e2 | .subf e1 e2 | .divf e1 e2 => countPasses e1 + countPasses e2
+  | .negf e => countPasses e
   | .map _ e => 1 + countPasses e
   | .zipWith _ e1 e2 => 1 + countPasses e1 + countPasses e2
   | .reduce _ _ e => 1 + countPasses e
   | .scale e1 e2 | .dot e1 e2 | .matmul e1 e2 => countPasses e1 + countPasses e2
+  | .emul e1 e2 => 1 + countPasses e1 + countPasses e2
+  | .bcast e => 1 + countPasses e
+  | .tpose e => 1 + countPasses e
 
 def passes (e : ClosedExpr a) : Nat :=
   countPasses (e NameV)

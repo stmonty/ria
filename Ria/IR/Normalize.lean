@@ -24,6 +24,11 @@ partial def inline : Expr (fun a => Expr NormV a) a → Expr NormV a
   | .scale e1 e2   => .scale (inline e1) (inline e2)
   | .dot e1 e2     => .dot (inline e1) (inline e2)
   | .matmul e1 e2  => .matmul (inline e1) (inline e2)
+  | .negf e        => .negf (inline e)
+  | .divf e1 e2    => .divf (inline e1) (inline e2)
+  | .emul e1 e2    => .emul (inline e1) (inline e2)
+  | .bcast e       => .bcast (inline e)
+  | .tpose e       => .tpose (inline e)
 
 partial def toAnyV : Expr NormV a → Expr V a
   | .litF x        => .litF x
@@ -37,6 +42,11 @@ partial def toAnyV : Expr NormV a → Expr V a
   | .scale e1 e2   => .scale (toAnyV e1) (toAnyV e2)
   | .dot e1 e2     => .dot (toAnyV e1) (toAnyV e2)
   | .matmul e1 e2  => .matmul (toAnyV e1) (toAnyV e2)
+  | .negf e        => .negf (toAnyV e)
+  | .divf e1 e2    => .divf (toAnyV e1) (toAnyV e2)
+  | .emul e1 e2    => .emul (toAnyV e1) (toAnyV e2)
+  | .bcast e       => .bcast (toAnyV e)
+  | .tpose e       => .tpose (toAnyV e)
   | .var _         => panic! "unexpected variable after normalization"
   | .lett _ _      => panic! "unexpected let after normalization"
 
