@@ -3,8 +3,6 @@ import Ria.Combinators
 
 namespace Ria.IR
 
-/-- Evaluate an expression to a concrete value.
-    Variables hold actual values (V := Ty.denote). -/
 partial def eval : Expr Ty.denote a → Ty.denote a
   | .var x            => x
   | .lett e f         => eval (f (eval e))
@@ -19,8 +17,17 @@ partial def eval : Expr Ty.denote a → Ty.denote a
   | .scale e1 e2      => Ria.Array.scale (eval e1) (eval e2)
   | .dot e1 e2        => Ria.Array.dot (eval e1) (eval e2)
   | .matmul e1 e2     => Ria.Array.matmul (eval e1) (eval e2) (by sorry)
+  | .negf e           => - (eval e)
+  | .divf e1 e2       => eval e1 / eval e2
+  | .emul e1 e2       => Ria.Array.zipWith (· * ·) (eval e1) (eval e2)
+  | .bcast (s := s) e => Ria.Array.fill s (eval e) .float64 (by sorry)
+  | .tpose (m := m) (n := n) e =>
+    let a := eval e
+    Ria.Array.tabulate [n, m] .float64 fun idx =>
+      let outRow := idx.val / m
+      let outCol := idx.val % m
+      a.get2d ⟨outCol, by sorry⟩ ⟨outRow, by sorry⟩
 
-/-- Evaluate a closed expression. -/
 def run (e : ClosedExpr a) : Ty.denote a :=
   eval (e Ty.denote)
 
